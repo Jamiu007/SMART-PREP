@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from "react";
-
-const RoleContext = createContext(null);
+import { useState } from "react";
+import { RoleContext } from "./RoleContextValue.js";
 
 export function RoleProvider({ children }) {
   const [role, setRole] = useState("tutor");
@@ -12,10 +11,3 @@ export function RoleProvider({ children }) {
   );
 }
 
-export function useRole() {
-  const ctx = useContext(RoleContext);
-  if (!ctx) {
-    throw new Error("useRole must be used inside RoleProvider");
-  }
-  return ctx;
-}

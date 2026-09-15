@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from "react";
-
-const ToastContext = createContext(null);
+import { useState } from "react";
+import { ToastContext } from "./ToastContextValue.js";
 
 export function ToastProvider({ children }) {
   const [message, setMessage] = useState(null);
@@ -18,10 +17,3 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error("useToast must be used inside ToastProvider");
-  }
-  return ctx;
-}

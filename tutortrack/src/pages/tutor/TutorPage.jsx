@@ -12,86 +12,14 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
-import { useToast } from "../../context/ToastContext.jsx";
+import { useAssignments } from "../../hooks/useAssignments.js";
+import { usePayments } from "../../hooks/usePayments.js";
+import { useProgress } from "../../hooks/useProgress.js";
+import { useSessions } from "../../hooks/useSessions.js";
+import { useStudents } from "../../hooks/useStudents.js";
+import { useToast } from "../../hooks/useToast.js";
+import ScrollableTabs from "../../components/common/ScrollableTabs.jsx";
 
-const people = [
-  {
-    name: "Blessing Okafor",
-    initials: "BO",
-    subject: "Mathematics · JAMB 2026",
-    attendance: 94,
-    work: 88,
-    note: "Strong on algebra; revise probability.",
-  },
-  {
-    name: "Daniel Adebayo",
-    initials: "DA",
-    subject: "Physics · WAEC 2026",
-    attendance: 78,
-    work: 67,
-    note: "Needs a check-in on missed work.",
-  },
-  {
-    name: "Chioma Eze",
-    initials: "CE",
-    subject: "Chemistry · JAMB 2026",
-    attendance: 96,
-    work: 100,
-    note: "Excellent last mock score.",
-  },
-];
-const tasks = [
-  {
-    title: "Differentiation past questions",
-    person: "Blessing + SS3 Maths",
-    due: "Due tomorrow",
-    status: "Submitted",
-    color: "bg-sky-100 text-sky-700",
-  },
-  {
-    title: "Electrolysis worksheet",
-    person: "Daniel Adebayo",
-    due: "Overdue by 2 days",
-    status: "Not submitted",
-    color: "bg-rose-100 text-rose-700",
-  },
-  {
-    title: "Mole concept drill",
-    person: "Chioma Eze",
-    due: "Due Fri, 17 May",
-    status: "Ready to grade",
-    color: "bg-amber-100 text-amber-700",
-  },
-];
-const initialPayments = [
-  {
-    id: 1,
-    name: "Daniel Adebayo",
-    item: "May tuition · 8 sessions",
-    amount: 48000,
-    due: "Overdue 5 days",
-    status: "overdue",
-    method: "Bank transfer",
-  },
-  {
-    id: 2,
-    name: "Blessing Okafor",
-    item: "May tuition · 8 sessions",
-    amount: 36000,
-    due: "Due 20 May",
-    status: "pending",
-    method: "Paystack",
-  },
-  {
-    id: 3,
-    name: "Chioma Eze",
-    item: "May tuition · 4 sessions",
-    amount: 24000,
-    due: "Paid 02 May",
-    status: "paid",
-    method: "Bank transfer",
-  },
-];
 const tabs = [
   "Overview",
   "Schedule",
@@ -105,24 +33,61 @@ const money = (n) => `₦${n.toLocaleString("en-NG")}`;
 
 export default function TutorPage() {
   const [tab, setTab] = useState("Overview"),
-    [payments, setPayments] = useState(initialPayments),
+    [paidIds, setPaidIds] = useState([]),
     [receipt, setReceipt] = useState(null),
     [modal, setModal] = useState(false);
+  const { assignments } = useAssignments();
+  const { progress } = useProgress();
+  const { sessions } = useSessions();
+  const { students } = useStudents();
+  const { payments: paymentData } = usePayments();
   const { push } = useToast();
+  const people = students.map((student, index) => ({
+    name: student.name,
+    initials: student.name
+      .split(" ")
+      .map((part) => part[0])
+      .join(""),
+    subject: student.grade,
+    attendance: [94, 78, 96][index] ?? 90,
+    work: [88, 67, 100][index] ?? 80,
+    note: student.risk,
+  }));
+  const tasks = assignments.map((assignment) => ({
+    title: assignment.title,
+    person:
+      students.find((student) => student.id === assignment.studentId)?.name ??
+      "Assigned student",
+    due: assignment.due,
+    status: assignment.status,
+    color:
+      assignment.status === "In Review"
+        ? "bg-amber-100 text-amber-700"
+        : assignment.status === "Draft"
+          ? "bg-rose-100 text-rose-700"
+          : "bg-sky-100 text-sky-700",
+  }));
+
+  const payments = paymentData.map((payment) => ({
+    ...payment,
+    name:
+      students.find((student) => student.id === payment.studentId)?.name ??
+      "Assigned student",
+    item: `${payment.month} tuition`,
+    due: payment.status === "Due" ? "Due this month" : "Paid",
+    status: paidIds.includes(payment.id) ? "paid" : payment.status.toLowerCase(),
+    method: "Mock record",
+  }));
   const markPaid = (id) => {
-    setPayments((all) =>
-      all.map((p) =>
-        p.id === id ? { ...p, status: "paid", due: "Paid just now" } : p,
-      ),
-    );
+    setPaidIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
     push("Payment marked received. Receipt is ready.");
   };
   const content = {
-    Overview: <Overview go={setTab} />,
-    Schedule: <Schedule push={push} />,
-    Students: <Students push={push} />,
-    Assignments: <Assignments push={push} />,
-    Progress: <Progress />,
+    Overview: <Overview go={setTab} people={people} tasks={tasks} />,
+    Schedule: <Schedule push={push} sessions={sessions} />,
+    Students: <Students push={push} people={people} />,
+    Assignments: <Assignments push={push} tasks={tasks} />,
+    Progress: <Progress progress={progress} />,
     Payments: (
       <Payments items={payments} markPaid={markPaid} receipt={setReceipt} />
     ),
@@ -130,10 +95,10 @@ export default function TutorPage() {
   }[tab];
   return (
     <section className="mx-auto max-w-7xl">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-emerald-600">
-            Tuesday, 14 May
+            Tuesday, 15 September 2026
           </p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
             Good morning, Mr. Adewale.
@@ -143,8 +108,9 @@ export default function TutorPage() {
           </p>
         </div>
         <button
+          type="button"
           onClick={() => setModal(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20"
         >
           <Plus size={17} />
           New{" "}
@@ -155,16 +121,8 @@ export default function TutorPage() {
               : "student"}
         </button>
       </div>
-      <div className="mt-7 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-[#0f1b2d]">
-        {tabs.map((x) => (
-          <button
-            key={x}
-            onClick={() => setTab(x)}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold ${tab === x ? "bg-[#10243c] text-white" : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"}`}
-          >
-            {x}
-          </button>
-        ))}
+      <div className="mt-7">
+        <ScrollableTabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
       {content}
       {modal && (
@@ -205,7 +163,7 @@ function getCreateTitle(tab) {
 
   return titles[tab] ?? titles.default;
 }
-function Overview({ go }) {
+function Overview({ go, people, tasks }) {
   return (
     <div className="mt-7 space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -292,22 +250,44 @@ function Overview({ go }) {
     </div>
   );
 }
-function Schedule({ push }) {
+function Schedule({ push, sessions }) {
   return (
     <div className="mt-7 grid gap-6 xl:grid-cols-[1fr_290px]">
-      <Panel title="May 2026" action="Week">
+      <Panel title="September 2026" action="Week">
         <div className="mb-5 flex gap-2 text-sm text-slate-500">
           <button>‹</button>
           <strong className="px-3 text-slate-900 dark:text-white">
-            13–17 May
+            15–19 September
           </strong>
           <button>›</button>
         </div>
-        <div className="overflow-x-auto">
+        <div className="md:hidden">
+          <div className="space-y-3">
+            {sessions.map((session) => (
+              <button
+                type="button"
+                key={session.id}
+                onClick={() =>
+                  push("Session opened. You can confirm or propose a new time.")
+                }
+                className="flex w-full flex-col gap-1 rounded-xl border border-slate-200 p-4 text-left dark:border-slate-800"
+              >
+                <span className="text-xs font-bold text-emerald-600">
+                  {session.date} · {session.start}–{session.end}
+                </span>
+                <span className="font-bold">{session.topic}</span>
+                <span className="text-sm text-slate-500">
+                  {session.status} · Student {session.studentId}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <div className="min-w-[650px]">
             <div className="grid grid-cols-[70px_repeat(5,1fr)] border-b border-slate-200 pb-3 text-center text-xs font-bold text-slate-500">
               <span></span>
-              {["Tue 13", "Wed 14", "Thu 15", "Fri 16", "Sat 17"].map((x) => (
+              {["Tue 15", "Wed 16", "Thu 17", "Fri 18", "Sat 19"].map((x) => (
                 <span key={x}>{x}</span>
               ))}
             </div>
@@ -361,7 +341,7 @@ function Schedule({ push }) {
         </button>
         <button
           onClick={() => push("Reschedule proposal sent for confirmation.")}
-          className="mt-2 w-full rounded-xl bg-[#10243c] py-2.5 text-sm font-bold text-white"
+          className="mt-2 w-full rounded-xl bg-[var(--color-brand-navy)] py-2.5 text-sm font-bold text-white"
         >
           Propose new time
         </button>
@@ -369,7 +349,7 @@ function Schedule({ push }) {
     </div>
   );
 }
-function Students({ push }) {
+function Students({ push, people }) {
   return (
     <div className="mt-7">
       <div className="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 p-5 text-emerald-900">
@@ -399,7 +379,7 @@ function Students({ push }) {
     </div>
   );
 }
-function Assignments({ push }) {
+function Assignments({ push, tasks }) {
   return (
     <div className="mt-7 space-y-5">
       <div className="grid gap-4 md:grid-cols-3">
@@ -435,7 +415,7 @@ function Assignments({ push }) {
                   {x.person} · {x.due}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <span
                   className={`rounded-full px-3 py-1.5 text-xs font-bold ${x.color}`}
                 >
@@ -449,7 +429,7 @@ function Assignments({ push }) {
                         : "Submission opened for grading.",
                     )
                   }
-                  className="rounded-lg bg-[#10243c] px-3 py-2 text-xs font-bold text-white"
+                  className="rounded-lg bg-[var(--color-brand-navy)] px-3 py-2 text-xs font-bold text-white"
                 >
                   {i === 1 ? "Send reminder" : "Grade"}
                 </button>
@@ -461,26 +441,20 @@ function Assignments({ push }) {
     </div>
   );
 }
-function Progress() {
+function Progress({ progress }) {
   return (
     <div className="mt-7 grid gap-6 xl:grid-cols-[1fr_.85fr]">
       <Panel title="Blessing’s Mathematics checklist" action="Edit syllabus">
         <div className="space-y-4">
-          {[
-            ["Algebraic expressions", true],
-            ["Quadratic equations", true],
-            ["Differentiation", true],
-            ["Probability", false],
-            ["Statistics", false],
-          ].map(([x, done]) => (
-            <div key={x} className="flex items-center gap-3 text-sm">
+          {progress.map((item) => (
+            <div key={item.studentId + item.metric} className="flex items-center gap-3 text-sm">
               <span
-                className={`grid h-5 w-5 place-items-center rounded-md ${done ? "bg-emerald-500 text-white" : "border border-slate-300"}`}
+                className={`grid h-5 w-5 place-items-center rounded-md ${item.score >= 80 ? "bg-emerald-500 text-white" : "border border-slate-300"}`}
               >
-                {done && <Check size={14} />}
+                {item.score >= 80 && <Check size={14} />}
               </span>
-              <span className={done ? "text-slate-500 line-through" : ""}>
-                {x}
+              <span className={item.score >= 80 ? "text-slate-500 line-through" : ""}>
+                {item.metric} · {item.score}%
               </span>
             </div>
           ))}
@@ -518,11 +492,11 @@ function Payments({ items, markPaid, receipt }) {
     .reduce((a, x) => a + x.amount, 0);
   return (
     <div className="mt-7 space-y-6">
-      <div className="overflow-hidden rounded-3xl bg-[#10243c] p-6 text-white shadow-xl shadow-[#10243c]/15 sm:p-8">
+      <div className="overflow-hidden rounded-3xl bg-[var(--color-brand-navy)] p-6 text-white shadow-xl shadow-[var(--color-brand-navy)]/15 sm:p-8">
         <div className="grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
           <div>
             <p className="text-sm font-semibold text-emerald-300">
-              Payments overview · May 2026
+              Payments overview · September 2026
             </p>
             <p className="mt-3 text-4xl font-extrabold sm:text-5xl">
               {money(outstanding)}
@@ -548,7 +522,7 @@ function Payments({ items, markPaid, receipt }) {
               <div className="h-full w-[72%] rounded-full bg-emerald-400" />
             </div>
             <p className="mt-2 text-xs text-slate-300">
-              72% of May tuition collected
+              72% of September tuition collected
             </p>
           </div>
         </div>
@@ -575,7 +549,7 @@ function Payments({ items, markPaid, receipt }) {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-4 sm:justify-end">
+                <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-end">
                   <div className="text-right">
                     <p className="font-extrabold">{money(x.amount)}</p>
                     <Status x={x} />
@@ -617,7 +591,7 @@ function Payments({ items, markPaid, receipt }) {
               Blessing’s payment is due soon
             </p>
             <p className="mt-1 text-xs text-amber-700">
-              Reminder scheduled for 18 May.
+              Reminder scheduled for 18 September.
             </p>
           </div>
         </Panel>
@@ -627,7 +601,7 @@ function Payments({ items, markPaid, receipt }) {
 }
 function Messages({ push }) {
   return (
-    <div className="mt-7 grid min-h-[480px] overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 lg:grid-cols-[280px_1fr] dark:bg-[#0f1b2d] dark:ring-slate-800">
+    <div className="mt-7 grid min-h-[480px] overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 lg:grid-cols-[280px_1fr] dark:bg-[var(--color-dark-surface)] dark:ring-slate-800">
       <div className="border-b border-slate-200 p-4 lg:border-b-0 lg:border-r dark:border-slate-800">
         <p className="mb-4 font-extrabold">Structured messages</p>
         {[
@@ -663,14 +637,15 @@ function Messages({ push }) {
             System · Assignment due tomorrow at 11:59 pm
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 pb-[env(safe-area-inset-bottom)]">
           <input
-            className="min-w-0 flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm outline-emerald-500 dark:bg-slate-800"
+            className="min-w-0 flex-[1_1_12rem] rounded-xl bg-slate-100 px-4 py-3 text-sm outline-emerald-500 dark:bg-slate-800"
             placeholder="Write a message…"
           />
           <button
+            type="button"
             onClick={() => push("Message sent to Blessing.")}
-            className="grid h-11 w-11 place-items-center rounded-xl bg-[#10243c] text-white"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--color-brand-navy)] text-white"
           >
             <Send size={17} />
           </button>
@@ -681,7 +656,7 @@ function Messages({ push }) {
 }
 function Panel({ title, action, click, children }) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[#0f1b2d] dark:ring-slate-800">
+    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[var(--color-dark-surface)] dark:ring-slate-800">
       <div className="mb-5 flex items-center justify-between">
         <h2 className="font-extrabold">{title}</h2>
         {action && (
@@ -705,7 +680,7 @@ function Stat({ icon, label, value, detail, tone = "emerald" }) {
     blue: "bg-sky-100 text-sky-700",
   };
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[#0f1b2d] dark:ring-slate-800">
+    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[var(--color-dark-surface)] dark:ring-slate-800">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-500">{label}</p>
         {icon && (
@@ -730,7 +705,7 @@ function Avatar({ value }) {
 }
 function StudentCard({ x, full }) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[#0f1b2d] dark:ring-slate-800">
+    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[var(--color-dark-surface)] dark:ring-slate-800">
       <div className="flex justify-between">
         <div className="flex gap-3">
           <Avatar value={x.initials} />
@@ -834,9 +809,9 @@ function Modal({ title, close, children }) {
 function Receipt({ item, close }) {
   return (
     <Modal title="Payment receipt" close={close}>
-      <div className="rounded-2xl bg-[#10243c] p-5 text-white">
+      <div className="rounded-2xl bg-[var(--color-brand-navy)] p-5 text-white">
         <div className="flex items-center justify-between">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 text-[#10243c]">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 text-[var(--color-brand-navy)]">
             <ReceiptText />
           </span>
           <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-200">
@@ -847,7 +822,7 @@ function Receipt({ item, close }) {
         <p className="text-xl font-extrabold">{item.name}</p>
         <p className="mt-6 text-3xl font-extrabold">{money(item.amount)}</p>
         <div className="mt-6 border-t border-white/15 pt-4 text-sm text-slate-300">
-          <p>May tuition · TutorTrack receipt</p>
+          <p>September tuition · TutorTrack receipt</p>
           <p className="mt-1">Method: {item.method}</p>
           <p className="mt-1">Ref: TT-MAY-{item.id}092</p>
         </div>

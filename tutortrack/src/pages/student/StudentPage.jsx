@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -8,12 +7,21 @@ import {
   Send,
 } from "lucide-react";
 import { useState } from "react";
-import { useToast } from "../../context/ToastContext.jsx";
+import { useToast } from "../../hooks/useToast.js";
+import { useAssignments } from "../../hooks/useAssignments.js";
+import { useMessages } from "../../hooks/useMessages.js";
+import { useProgress } from "../../hooks/useProgress.js";
+import { useSessions } from "../../hooks/useSessions.js";
+import ScrollableTabs from "../../components/common/ScrollableTabs.jsx";
 
 const tabs = ["My plan", "Assignments", "Progress", "Messages"];
 export default function StudentPage() {
   const [tab, setTab] = useState("My plan");
   const { push } = useToast();
+  const { assignments } = useAssignments();
+  const { messages } = useMessages();
+  const { progress } = useProgress();
+  const { sessions } = useSessions();
   return (
     <section className="mx-auto max-w-5xl">
       <p className="text-sm font-semibold text-emerald-600">
@@ -28,35 +36,27 @@ export default function StudentPage() {
         </div>
         <button
           onClick={() => push("Message thread with Mr. Adewale opened.")}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#10243c] px-4 py-3 text-sm font-bold text-white"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-brand-navy)] px-4 py-3 text-sm font-bold text-white"
         >
           <MessageCircle size={17} />
           Ask your tutor
         </button>
       </div>
-      <div className="mt-7 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-[#0f1b2d]">
-        {tabs.map((x) => (
-          <button
-            key={x}
-            onClick={() => setTab(x)}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold ${tab === x ? "bg-emerald-500 text-white" : "text-slate-500"}`}
-          >
-            {x}
-          </button>
-        ))}
+      <div className="mt-7">
+        <ScrollableTabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
-      {tab === "My plan" && <Plan />}
-      {tab === "Assignments" && <Assignments push={push} />}{" "}
-      {tab === "Progress" && <Progress />}
-      {tab === "Messages" && <Messages push={push} />}
+      {tab === "My plan" && <Plan sessions={sessions} progress={progress} />}
+      {tab === "Assignments" && <Assignments push={push} assignments={assignments} />} {" "}
+      {tab === "Progress" && <Progress progress={progress} />}
+      {tab === "Messages" && <Messages push={push} messages={messages} />}
     </section>
   );
 }
-function Plan() {
+function Plan({ sessions, progress }) {
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
       <Card title="Up next">
-        <div className="rounded-2xl bg-[#10243c] p-5 text-white">
+        <div className="rounded-2xl bg-[var(--color-brand-navy)] p-5 text-white">
           <div className="flex items-center justify-between">
             <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-200">
               CONFIRMED
@@ -67,10 +67,10 @@ function Plan() {
             WEDNESDAY · 4:00–5:00 PM
           </p>
           <h2 className="mt-2 text-xl font-extrabold">
-            Mathematics: Differentiation
+            {sessions[0]?.topic ?? "Mathematics: Differentiation"}
           </h2>
           <p className="mt-2 text-sm text-slate-300">with Mr. Adewale</p>
-          <button className="mt-6 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-[#10243c]">
+          <button className="mt-6 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-[var(--color-brand-navy)]">
             Session details
           </button>
         </div>
@@ -81,21 +81,27 @@ function Plan() {
       <Card title="This week">
         <div className="space-y-4">
           <Goal label="Assignments complete" value="3 of 5" width="60%" />
-          <Goal label="Mathematics syllabus" value="60%" width="60%" />
+          <Goal
+            label="Progress"
+            value={`${progress[0]?.score ?? 60}%`}
+            width={`${progress[0]?.score ?? 60}%`}
+          />
           <Goal label="Attendance" value="94%" width="94%" />
         </div>
       </Card>
     </div>
   );
 }
-function Assignments({ push }) {
+function Assignments({ push, assignments }) {
   return (
     <div className="mt-6 space-y-4">
       <Card title="Due soon">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <div className="flex justify-between gap-4">
             <div>
-              <p className="font-extrabold">Differentiation past questions</p>
+              <p className="font-extrabold">
+                {assignments[0]?.title ?? "Differentiation past questions"}
+              </p>
               <p className="mt-1 text-sm text-amber-800">
                 Due tomorrow, 11:59 pm · Mathematics
               </p>
@@ -112,7 +118,7 @@ function Assignments({ push }) {
                 "Submission area opened. Attach a photo, file, or text answer.",
               )
             }
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#10243c] px-4 py-2.5 text-sm font-bold text-white"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--color-brand-navy)] px-4 py-2.5 text-sm font-bold text-white"
           >
             <FileUp size={16} />
             Submit work
@@ -135,19 +141,15 @@ function Assignments({ push }) {
     </div>
   );
 }
-function Progress() {
+function Progress({ progress }) {
   return (
     <div className="mt-6 grid gap-6 md:grid-cols-2">
       <Card title="Mathematics syllabus">
         <div className="space-y-3">
-          {[
-            "Algebraic expressions",
-            "Quadratic equations",
-            "Differentiation",
-          ].map((x) => (
-            <p key={x} className="flex items-center gap-2 text-sm">
+          {progress.map((item) => (
+            <p key={item.studentId + item.metric} className="flex items-center gap-2 text-sm">
               <CheckCircle2 size={17} className="text-emerald-500" />
-              {x}
+              {item.metric} · {item.score}%
             </p>
           ))}
           <p className="flex items-center gap-2 text-sm text-slate-500">
@@ -170,29 +172,30 @@ function Progress() {
     </div>
   );
 }
-function Messages({ push }) {
+function Messages({ push, messages }) {
   return (
-    <div className="mt-6 flex min-h-[430px] flex-col rounded-2xl bg-white p-5 ring-1 ring-slate-200 dark:bg-[#0f1b2d] dark:ring-slate-800">
+    <div className="mt-6 flex min-h-[430px] flex-col rounded-2xl bg-white p-5 ring-1 ring-slate-200 dark:bg-[var(--color-dark-surface)] dark:ring-slate-800">
       <div className="border-b border-slate-100 pb-4">
         <p className="font-bold">Mr. Adewale</p>
         <p className="text-xs text-slate-500">Mathematics tutor</p>
       </div>
       <div className="flex-1 py-6 text-sm">
         <p className="max-w-sm rounded-2xl rounded-tl-sm bg-slate-100 p-3 dark:bg-slate-800">
-          Good afternoon sir, is Question 5 compulsory?
+          {messages[0]?.body ?? "Good afternoon sir, is Question 5 compulsory?"}
         </p>
         <p className="ml-auto mt-4 max-w-sm rounded-2xl rounded-tr-sm bg-emerald-500 p-3 text-white">
           Focus on Questions 1–4 today. We’ll review Question 5 in our session.
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 pb-[env(safe-area-inset-bottom)]">
         <input
-          className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm dark:bg-slate-800"
+          className="min-w-0 flex-[1_1_12rem] rounded-xl bg-slate-100 px-4 py-3 text-sm dark:bg-slate-800"
           placeholder="Write a message…"
         />
         <button
+          type="button"
           onClick={() => push("Message sent.")}
-          className="grid h-11 w-11 place-items-center rounded-xl bg-[#10243c] text-white"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--color-brand-navy)] text-white"
         >
           <Send size={17} />
         </button>
@@ -202,7 +205,7 @@ function Messages({ push }) {
 }
 function Card({ title, children }) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[#0f1b2d] dark:ring-slate-800">
+    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-[var(--color-dark-surface)] dark:ring-slate-800">
       <h2 className="mb-5 font-extrabold">{title}</h2>
       {children}
     </section>
