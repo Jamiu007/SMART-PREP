@@ -6,9 +6,12 @@ export default function ProgressCard({ label, score, trend }) {
         <span className="text-emerald-300">{trend}</span>
       </div>
       <div className="mt-3 h-2 rounded bg-white/10">
-        <div className="h-2 rounded bg-emerald-400" style={{ width: `${score}%` }}></div>
+        <div
+          className="h-2 rounded bg-emerald-400"
+          style={{ width: `${score}%` }}
+        ></div>
       </div>
       <div className="mt-3 text-sm text-slate-400">{score}% complete</div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from "../context/AuthContext.jsx";
 
 export function useUser() {
-  return useAuth()
+  return useAuth();
 }

@@ -1,49 +1,160 @@
-import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Calendar, GraduationCap, Users, CreditCard, MessageCircle } from 'lucide-react'
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import {
+  BookOpen,
+  CalendarDays,
+  GraduationCap,
+  Menu,
+  MessageCircle,
+  Moon,
+  Sun,
+  Users,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 
-const links = [
-  { label: 'Tutor', icon: GraduationCap, to: '/tutor' },
-  { label: 'Student', icon: Users, to: '/student' },
-  { label: 'Parent', icon: CreditCard, to: '/parent' },
-]
+const roleLinks = [
+  { label: "Tutor space", icon: GraduationCap, to: "/tutor" },
+  { label: "Student view", icon: BookOpen, to: "/student" },
+  { label: "Parent portal", icon: Users, to: "/parent" },
+];
+
+const roleDetails = {
+  tutor: { label: "Adewale", account: "Tutor account" },
+  student: { label: "Blessing", account: "Student account" },
+  parent: { label: "Mrs. Nwachukwu", account: "Parent account" },
+};
+
+function getStoredTheme() {
+  return localStorage.getItem("tutortrack-theme") === "dark";
+}
 
 export default function DashboardLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dark, setDark] = useState(getStoredTheme);
+  const role = useLocation().pathname.slice(1) || "tutor";
+  const user = roleDetails[role] ?? roleDetails.tutor;
+
+  function toggleTheme() {
+    setDark((currentTheme) => {
+      const nextTheme = !currentTheme;
+      localStorage.setItem("tutortrack-theme", nextTheme ? "dark" : "light");
+      return nextTheme;
+    });
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50">
-      <aside className="fixed left-0 top-0 h-screen w-72 border-r border-white/10 bg-slate-900 p-6">
-        <div className="mb-10">
-          <div className="text-xs uppercase tracking-[0.3em] text-emerald-300">TutorTrack</div>
-          <div className="mt-2 text-2xl font-bold">Smart Prep</div>
-        </div>
-        <nav className="space-y-2">
-          {links.map((item) => {
-            const Icon = item.icon
-            return (
-              <NavLink key={item.to} to={item.to} className={({ isActive }) => `flex items-center gap-3 rounded-2xl px-4 py-3 ${isActive ? 'bg-emerald-400 text-slate-950' : 'text-slate-300 hover:bg-white/8'}`}> 
-                <Icon size={20} />
-                <span>{item.label}</span>
-              </NavLink>
-            )
-          })}
-          <div className="mt-8 border-t border-white/10 pt-6">
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-slate-400">
-              <Calendar size={20} />
-              <span>Schedule</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-slate-400">
-              <MessageCircle size={20} />
-              <span>Messages</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-slate-400">
-              <LayoutDashboard size={20} />
-              <span>Dashboard</span>
-            </div>
+    <div className={dark ? "dark" : ""}>
+      <div className="min-h-screen bg-[#f7f9fc] text-slate-900 transition-colors dark:bg-[#0b1220] dark:text-slate-50">
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-[#0f1b2d]/90">
+          <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6">
+            <Brand menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+            <ProfileMenu dark={dark} onToggleTheme={toggleTheme} user={user} />
           </div>
-        </nav>
-      </aside>
-      <main className="ml-72 min-h-screen p-10">
-        <Outlet />
-      </main>
+        </header>
+        <div className="mx-auto flex max-w-[1440px]">
+          <Sidebar menuOpen={menuOpen} closeMenu={() => setMenuOpen(false)} />
+          <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+            <Outlet />
+          </main>
+        </div>
+      </div>
     </div>
-  )
+  );
+}
+
+function Brand({ menuOpen, setMenuOpen }) {
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="rounded-xl p-2 text-slate-500 lg:hidden"
+      >
+        {menuOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+      <NavLink
+        to="/tutor"
+        className="flex items-center gap-2 font-extrabold tracking-tight"
+      >
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500 text-white">
+          <GraduationCap size={18} />
+        </span>
+        TutorTrack
+      </NavLink>
+    </div>
+  );
+}
+
+function ProfileMenu({ dark, onToggleTheme, user }) {
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={onToggleTheme}
+        aria-label="Toggle color mode"
+        className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-300"
+      >
+        {dark ? <Sun size={17} /> : <Moon size={17} />}
+      </button>
+      <div className="hidden text-right sm:block">
+        <p className="text-sm font-semibold">{user.label}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          {user.account}
+        </p>
+      </div>
+      <div className="grid h-9 w-9 place-items-center rounded-full bg-orange-100 font-bold text-orange-700">
+        {user.label[0]}
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ menuOpen, closeMenu }) {
+  const visibility = menuOpen
+    ? "fixed inset-x-0 top-16 z-20 block px-4"
+    : "hidden";
+  return (
+    <aside
+      className={`${visibility} w-full bg-white pb-4 shadow-xl lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:w-64 lg:shrink-0 lg:border-r lg:border-slate-200 lg:bg-transparent lg:px-5 lg:py-7 lg:shadow-none dark:bg-[#0b1220] dark:lg:border-slate-800`}
+    >
+      <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">
+        Switch preview
+      </p>
+      <nav className="space-y-1">
+        {roleLinks.map(({ label, icon: Icon, to }) => (
+          <NavLink
+            onClick={closeMenu}
+            key={to}
+            to={to}
+            className={({ isActive }) => getNavClassName(isActive)}
+          >
+            <Icon size={18} />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="mt-7 border-t border-slate-200 pt-5 dark:border-slate-800">
+        <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">
+          TutorTrack
+        </p>
+        <SidebarDetail icon={CalendarDays} text="Smart scheduling" />
+        <SidebarDetail icon={MessageCircle} text="Secure messages" />
+      </div>
+    </aside>
+  );
+}
+
+function getNavClassName(isActive) {
+  const active =
+    "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300";
+  const idle =
+    "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800";
+  return `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${isActive ? active : idle}`;
+}
+
+function SidebarDetail({ icon: Icon, text }) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
+      <Icon size={17} />
+      {text}
+    </div>
+  );
 }

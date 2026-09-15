@@ -1,21 +1,21 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState } from "react";
 
-const RoleContext = createContext(null)
+const RoleContext = createContext(null);
 
 export function RoleProvider({ children }) {
-  const [role, setRole] = useState('tutor')
+  const [role, setRole] = useState("tutor");
 
   return (
     <RoleContext.Provider value={{ role, setRole }}>
       {children}
     </RoleContext.Provider>
-  )
+  );
 }
 
 export function useRole() {
-  const ctx = useContext(RoleContext)
+  const ctx = useContext(RoleContext);
   if (!ctx) {
-    throw new Error('useRole must be used inside RoleProvider')
+    throw new Error("useRole must be used inside RoleProvider");
   }
-  return ctx
+  return ctx;
 }

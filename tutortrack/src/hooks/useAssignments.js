@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react'
-import { getAssignments } from '../data/assignments.js'
+import { useEffect, useState } from "react";
+import { getAssignments } from "../data/assignments.js";
 
 export function useAssignments() {
-  const [assignments, setAssignments] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true
+    let mounted = true;
     getAssignments().then((data) => {
       if (mounted) {
-        setAssignments(data)
-        setLoading(false)
+        setAssignments(data);
+        setLoading(false);
       }
-    })
+    });
     return () => {
-      mounted = false
-    }
-  }, [])
+      mounted = false;
+    };
+  }, []);
 
-  return { assignments, loading }
+  return { assignments, loading };
 }
